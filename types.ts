@@ -89,7 +89,10 @@ export const BMECAT_FIELDS: BmecatField[] = [
 ];
 
 
+export type BmecatFormat = '1.2' | '2005';
+
 export interface BmecatHeaderInfo {
+    format: BmecatFormat;
     catalogId: string;
     catalogVersion: string;
     catalogName: string;
@@ -102,6 +105,17 @@ export interface BmecatHeaderInfo {
     supplierCountry: string;
     supplierEmail: string;
     supplierUrl: string;
+    // Format-specific fields for BMECat 2005
+    language?: string;
+    fabDis?: string;
+    edition?: string;
+    decSep?: string;
+    marque?: string[];
+    countryOfOrigin?: string;
+    mimeRoot?: string;
+    // Contact details for 2005 format
+    contactFirstName?: string;
+    contactLastName?: string;
 }
 
 export type Mapping = {

@@ -34,7 +34,7 @@ const findInvalidXmlCharacters = (data: (ParsedCsvRow | ParsedStructureRow)[], h
   return null;
 };
 
-export default function App() {
+export default function WorkingApp() {
   // Basic state
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);

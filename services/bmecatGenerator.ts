@@ -85,11 +85,20 @@ const renderArticleToGroupMapXml = (data: TransformedRow[]): string => {
 };
 
 function generateHeaderXml(headerInfo: BmecatHeaderInfo): string {
+    if (headerInfo.format === '2005') {
+        return generateHeader2005Xml(headerInfo);
+    } else {
+        return generateHeader12Xml(headerInfo);
+    }
+}
+
+function generateHeader12Xml(headerInfo: BmecatHeaderInfo): string {
     const now = new Date();
     const date = now.toISOString().split('T')[0];
     const time = now.toTimeString().split(' ')[0];
   
     return `<HEADER>
+    <GENERATOR_INFO>Hollys BMEcat AI Konverter</GENERATOR_INFO>
     <CATALOG>
       <LANGUAGE>deu</LANGUAGE>
       <CATALOG_ID>${escapeXml(headerInfo.catalogId)}</CATALOG_ID>
@@ -101,16 +110,70 @@ function generateHeaderXml(headerInfo: BmecatHeaderInfo): string {
       </DATETIME>
       <TERRITORY>${escapeXml(headerInfo.territory)}</TERRITORY>
       <CURRENCY>${escapeXml(headerInfo.currency)}</CURRENCY>
+      ${headerInfo.mimeRoot ? `<MIME_ROOT>${escapeXml(headerInfo.mimeRoot)}</MIME_ROOT>` : ''}
     </CATALOG>
     <SUPPLIER>
       <SUPPLIER_NAME>${escapeXml(headerInfo.supplierName)}</SUPPLIER_NAME>
       <ADDRESS type="supplier">
         <STREET>${escapeXml(headerInfo.supplierStreet)}</STREET>
-        <ZIP>${escapeXml(headerInfo.supplierZip)}</ZIP>
+        <ZIPBOX>${escapeXml(headerInfo.supplierZip)}</ZIPBOX>
         <CITY>${escapeXml(headerInfo.supplierCity)}</CITY>
-        <COUNTRY>${escapeXml(headerInfo.supplierCountry)}</COUNTRY>
-        <EMAIL>${escapeXml(headerInfo.supplierEmail)}</EMAIL>
-        <URL>${escapeXml(headerInfo.supplierUrl)}</URL>
+        ${headerInfo.supplierCountry ? `<COUNTRY>${escapeXml(headerInfo.supplierCountry)}</COUNTRY>` : ''}
+        ${headerInfo.supplierEmail ? `<EMAIL>${escapeXml(headerInfo.supplierEmail)}</EMAIL>` : ''}
+        ${headerInfo.supplierUrl ? `<URL>${escapeXml(headerInfo.supplierUrl)}</URL>` : ''}
+      </ADDRESS>
+    </SUPPLIER>
+    <USER_DEFINED_EXTENSIONS/>
+  </HEADER>`;
+}
+
+function generateHeader2005Xml(headerInfo: BmecatHeaderInfo): string {
+    const now = new Date();
+    const date = now.toISOString().split('T')[0];
+  
+    let marqueXml = '';
+    if (headerInfo.marque && headerInfo.marque.length > 0) {
+        marqueXml = headerInfo.marque.map(m => `<MARQUE>${escapeXml(m)}</MARQUE>`).join('\n        ');
+    }
+
+    return `<HEADER>
+    <GENERATOR_INFO>Hollys BMEcat AI Konverter</GENERATOR_INFO>
+    <CATALOG>
+      <LANGUAGE>${escapeXml(headerInfo.language || 'deu')}</LANGUAGE>
+      ${headerInfo.fabDis ? `<FAB-DIS>${escapeXml(headerInfo.fabDis)}</FAB-DIS>` : ''}
+      ${headerInfo.edition ? `<EDITION>${escapeXml(headerInfo.edition)}</EDITION>` : ''}
+      ${headerInfo.decSep ? `<DECSEP>${escapeXml(headerInfo.decSep)}</DECSEP>` : ''}
+      ${marqueXml ? `${marqueXml}` : ''}
+      <CATALOG_ID>${escapeXml(headerInfo.catalogId)}</CATALOG_ID>
+      <CATALOG_VERSION>${escapeXml(headerInfo.catalogVersion)}</CATALOG_VERSION>
+      <CATALOG_NAME>${escapeXml(headerInfo.catalogName)}</CATALOG_NAME>
+      <DATETIME type="generation_date">
+        <DATE>${date}</DATE>
+      </DATETIME>
+      <TERRITORY>${escapeXml(headerInfo.territory)}</TERRITORY>
+      <CURRENCY>${escapeXml(headerInfo.currency)}</CURRENCY>
+      ${headerInfo.mimeRoot ? `<MIME_ROOT>${escapeXml(headerInfo.mimeRoot)}</MIME_ROOT>` : ''}
+      ${headerInfo.countryOfOrigin ? `<COUNTRY_OF_ORIGIN>${escapeXml(headerInfo.countryOfOrigin)}</COUNTRY_OF_ORIGIN>` : ''}
+    </CATALOG>
+    <SUPPLIER>
+      <SUPPLIER_ID type="duns">123456789</SUPPLIER_ID>
+      ${headerInfo.supplierName ? `<FABRICANT>${escapeXml(headerInfo.supplierName)}</FABRICANT>` : ''}
+      <ADDRESS type="supplier">
+        ${(headerInfo.contactFirstName || headerInfo.contactLastName) ? `
+        <CONTACT_DETAILS>
+          ${headerInfo.contactLastName ? `<ENOM>${escapeXml(headerInfo.contactLastName)}</ENOM>` : ''}
+          ${headerInfo.contactFirstName ? `<EPRENOM>${escapeXml(headerInfo.contactFirstName)}</EPRENOM>` : ''}
+          ${headerInfo.supplierEmail ? `
+          <EMAILS>
+            <EEMAIL>${escapeXml(headerInfo.supplierEmail)}</EEMAIL>
+          </EMAILS>` : ''}
+        </CONTACT_DETAILS>` : ''}
+        <STREET>${escapeXml(headerInfo.supplierStreet)}</STREET>
+        <ZIPBOX>${escapeXml(headerInfo.supplierZip)}</ZIPBOX>
+        <CITY>${escapeXml(headerInfo.supplierCity)}</CITY>
+        ${headerInfo.supplierCountry ? `<COUNTRY>${escapeXml(headerInfo.supplierCountry)}</COUNTRY>` : ''}
+        ${!headerInfo.contactFirstName && !headerInfo.contactLastName && headerInfo.supplierEmail ? `<EMAIL>${escapeXml(headerInfo.supplierEmail)}</EMAIL>` : ''}
+        ${headerInfo.supplierUrl ? `<URL>${escapeXml(headerInfo.supplierUrl)}</URL>` : ''}
       </ADDRESS>
     </SUPPLIER>
   </HEADER>`;
@@ -206,12 +269,22 @@ function generateClassicBmecat(headerInfo: BmecatHeaderInfo, data: TransformedRo
   
   const tNewCatalogContent = assembleTNewCatalogBody(articlesXml, groupSystemXml, articleToGroupMapXml);
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<BMEcat version="1.2" xmlns="http://www.bmecat.org/bmecat/1.2/bmecat_new_catalog">
+  if (headerInfo.format === '2005') {
+    return `<?xml version="1.0" encoding="UTF-8" ?>
+<BMECAT version="2005">
   ${headerXml}
   <T_NEW_CATALOG>${tNewCatalogContent}\n  </T_NEW_CATALOG>
-</BMEcat>
+</BMECAT>
 `;
+  } else {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE BMECAT SYSTEM "bmecat_new_catalog_1_2.dtd">
+<BMECAT version="1.2">
+  ${headerXml}
+  <T_NEW_CATALOG>${tNewCatalogContent}\n  </T_NEW_CATALOG>
+</BMECAT>
+`;
+  }
 }
 
 async function getAiArticleTemplate(
@@ -353,13 +426,36 @@ async function getAiBmecatBodyTemplate(
 ): Promise<string> {
     const parts: any[] = [];
     const systemInstruction = `You are an expert in various BMEcat standards (including 1.2 and 2005). Your task is to generate the main body structure of a BMEcat file based on the provided specification files.
-- Start with the <BMEcat> tag. Do not include an XML declaration (<?xml ... ?>).
+- Start with the <BMECAT> tag (note: uppercase). Do not include an XML declaration (<?xml ... ?>).
 - The <T_NEW_CATALOG> element MUST contain exactly this placeholder: '<!-- {{T_NEW_CATALOG_CONTENT}} -->'.
-- Your entire response MUST be a single, raw JSON object: { "bmecatBody": "<BMEcat>...</BMEcat>" }.
+- Your entire response MUST be a single, raw JSON object: { "bmecatBody": "<BMECAT>...</BMECAT>" }.
 - Do not add any conversational text, explanations, or markdown formatting.`;
     
+    const formatSpecificInfo = headerInfo.format === '2005' 
+        ? `
+**IMPORTANT: This is BMECat 2005 format. Key differences:**
+- Use <BMECAT version="2005"> (uppercase)
+- Include additional fields like FAB-DIS, EDITION, DECSEP, MARQUE, COUNTRY_OF_ORIGIN
+- Use FABRICANT instead of SUPPLIER_NAME
+- Contact details use ENOM/EPRENOM structure
+- Language: ${headerInfo.language || 'deu'}
+- FAB-DIS: ${headerInfo.fabDis || ''}
+- Edition: ${headerInfo.edition || ''}
+- DecSep: ${headerInfo.decSep || ''}
+- Country of Origin: ${headerInfo.countryOfOrigin || ''}
+- Contact First Name: ${headerInfo.contactFirstName || ''}
+- Contact Last Name: ${headerInfo.contactLastName || ''}`
+        : `
+**IMPORTANT: This is BMECat 1.2 format. Key characteristics:**
+- Use <BMECAT version="1.2"> (uppercase)
+- Include DOCTYPE declaration in final output
+- Use SUPPLIER_NAME (not FABRICANT)
+- Simpler contact structure
+- Include USER_DEFINED_EXTENSIONS`;
+
     const mainPrompt = `You are tasked with generating the main body of a BMEcat XML file, including the <HEADER>.
 **The entire XML structure, including the <HEADER>, MUST be derived from the specification files provided.** Pay close attention to the BMEcat version (e.g., 1.2, 2005) indicated in the specifications.
+${formatSpecificInfo}
 
 To determine the XML structure, you MUST follow this strict priority order for the provided sources:
 1.  **BSB Specification (*.bsb):** Highest priority. Its structure is mandatory.
@@ -367,6 +463,7 @@ To determine the XML structure, you MUST follow this strict priority order for t
 3.  **Existing XML Template:** Lowest priority. Use as a guide only if other sources are absent.
 
 Use the derived structure but populate the <HEADER> with the following specific data:
+- Format: BMECat ${headerInfo.format}
 - Catalog ID: ${headerInfo.catalogId}
 - Catalog Version: ${headerInfo.catalogVersion}
 - Catalog Name: ${headerInfo.catalogName}

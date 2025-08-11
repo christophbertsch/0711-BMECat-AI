@@ -12,6 +12,14 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      server: {
+        host: '0.0.0.0',
+        port: 53710,
+        cors: true,
+        headers: {
+          'X-Frame-Options': 'ALLOWALL'
+        }
       }
     };
 });

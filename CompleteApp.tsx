@@ -11,12 +11,9 @@ import { MappingSummary } from './components/MappingSummary';
 import { parseCsv, parseStructureCsv } from './services/csvParser';
 import { generateBmecat } from './services/bmecatGenerator';
 import { transformCsvData } from './services/dataTransformer';
-import { BmecatHeaderInfo, Mapping, ParsedCsvRow, BMECAT_FIELDS, BmecatFieldKey, ParsedStructureRow, StoredSpecification, FeatureMapping, BmecatFormat } from './types';
+import { BmecatHeaderInfo, Mapping, ParsedCsvRow, ParsedStructureRow, StoredSpecification, FeatureMapping, BmecatFormat } from './types';
 import { ArrowPathIcon, SparklesIcon } from './components/Icons';
 
-/**
- * Checks for characters that are invalid in XML, as BMEcat is an XML format.
- */
 const findInvalidXmlCharacters = (data: (ParsedCsvRow | ParsedStructureRow)[], headers: string[]): string | null => {
   const invalidXmlCharsRegex = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g;
 
@@ -34,13 +31,11 @@ const findInvalidXmlCharacters = (data: (ParsedCsvRow | ParsedStructureRow)[], h
   return null;
 };
 
-export default function App() {
-  // Basic state
+export default function CompleteApp() {
   const [currentStep, setCurrentStep] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Format and specification state
   const [selectedSpecification, setSelectedSpecification] = useState<StoredSpecification | null>(null);
   const [headerInfo, setHeaderInfo] = useState<BmecatHeaderInfo>({
     catalogId: '',
@@ -49,7 +44,6 @@ export default function App() {
     supplierName: '',
     generationDate: new Date().toISOString().split('T')[0],
     format: '1.2' as BmecatFormat,
-    // BMECat 2005 specific fields
     language: 'de',
     fabDis: '',
     edition: '',
@@ -58,7 +52,6 @@ export default function App() {
     contactPhone: ''
   });
 
-  // File and data state
   const [csvData, setCsvData] = useState<ParsedCsvRow[]>([]);
   const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
@@ -69,12 +62,10 @@ export default function App() {
   const [bsbFileName, setBsbFileName] = useState<string | null>(null);
   const [bsbFileContent, setBsbFileContent] = useState<string | null>(null);
 
-  // Mapping state
   const [mapping, setMapping] = useState<Mapping>({});
   const [featureMappings, setFeatureMappings] = useState<FeatureMapping[]>([]);
   const [generatedXml, setGeneratedXml] = useState<string>('');
 
-  // Event handlers
   const handleFormatChange = (format: BmecatFormat) => {
     setHeaderInfo(prev => ({ ...prev, format }));
   };
@@ -97,8 +88,6 @@ export default function App() {
       setCsvData(data);
       setCsvHeaders(headers);
       setCsvFileName(name);
-      
-      // Reset mapping when new file is loaded
       setMapping({});
       setFeatureMappings([]);
     } catch (err) {
@@ -197,19 +186,15 @@ export default function App() {
               onFileLoaded={handleFileLoaded}
               csvFileName={csvFileName}
               onCsvFileRemoved={handleCsvFileRemoved}
-              
               onStructureLoaded={handleStructureLoaded}
               structureFileName={structureFileName}
               onStructureRemoved={handleStructureRemoved}
-              
               onTemplateLoaded={handleTemplateLoaded}
               templateFileName={templateFileName}
               onTemplateRemoved={handleTemplateRemoved}
-
               onBsbFileLoaded={handleBsbFileLoaded}
               bsbFileName={bsbFileName}
               onBsbFileRemoved={handleBsbFileRemoved}
-
               uploadError={isUploadError ? error : null}
             />
              {csvData.length > 0 && (
