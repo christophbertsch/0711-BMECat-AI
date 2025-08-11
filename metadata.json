@@ -1,0 +1,6 @@
+{
+  "name": "Hollys BMEcat AI Konverter",
+  "description": "A web application that converts CSV product data into BMEcat 1.2 XML format using a step-by-step wizard to guide users through the process.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
